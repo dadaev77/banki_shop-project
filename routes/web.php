@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ParameterController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,6 +14,8 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::get('/', [ParameterController::class, 'index'])->name('parameters.index');
+Route::get('/parameters/{parameter}', [ParameterController::class, 'show'])->name('parameters.show');
+Route::get('/parameters/{parameter}/edit', [ParameterController::class, 'edit'])->name('parameters.edit');
+Route::put('/parameters/{parameter}', [ParameterController::class, 'update'])->name('parameters.update');
+Route::delete('/parameters/{parameter}/{iconType}', [ParameterController::class, 'destroyIcon'])->name('parameters.destroyIcon');
