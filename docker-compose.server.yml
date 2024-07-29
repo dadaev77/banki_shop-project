@@ -1,0 +1,83 @@
+
+
+services:
+  db:
+    image: mysql:8.0
+    restart: always
+    volumes:
+      - ./tmp/db:/var/lib/mysql
+    environment:
+      MYSQL_DATABASE: banki_shop_db
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - 3306:3306
+    command: mysqld --character-set-server=utf8 --collation-server=utf8_unicode_ci
+    container_name: project_db
+    networks:
+      - app-network
+
+  phpmyadmin:
+    image: phpmyadmin:latest
+    container_name: php-phpmyadmin
+    restart: unless-stopped
+    environment:
+      - PMA_ARBITRARY=1
+      - UPLOAD_LIMIT=1024M
+      - MEMORY_LIMIT=1024M
+      - MAX_EXECUTION_TIME=300
+    ports:
+      - "${PHPMYADMIN_PORT:-8080}:80"
+    depends_on:
+      - db
+    networks:
+      - app-network
+
+  app:
+    build:
+      context: .
+      dockerfile: _docker/app/Dockerfile
+    volumes:
+      - ./:/var/www
+    expose:
+      - "9000"
+    networks:
+      - app-network
+    container_name: project_app
+    depends_on:
+      - db
+
+  certbot:
+    image: certbot/certbot:latest
+    volumes:
+      - ./letsencrypt:/etc/letsencrypt
+      - ./letsencrypt-www:/var/www/certbot
+    command: certbot certonly --webroot --webroot-path=/var/www/certbot --email as.dadaev77@mail.ru --agree-tos --no-eff-email -d aslan77.store
+    container_name: project_certbot
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    volumes:
+      - ./:/var/www
+      - ./_docker/nginx/conf.d:/etc/nginx/conf.d
+      - ./_docker/nginx/log:/var/log/nginx
+      - ./letsencrypt:/etc/letsencrypt
+      - ./letsencrypt-www:/var/www/certbot
+    ports:
+      - "${NGINX_PORT:-80}:80"
+      - "${NGINX_PORT_SSL:-443}:443"
+    depends_on:
+      - app
+      - certbot
+    networks:
+      - app-network
+    container_name: project_nginx
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  letsencrypt:
+  letsencrypt-www:
